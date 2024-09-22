@@ -65,7 +65,7 @@
           uiLastY_Normal="333" uiopen_Normal="1">
     <PLUGIN name="AudioFilePlayer" format="VST3" category="Fx" manufacturer="Matkat Music LLC"
             version="1.0.0" file="C:\Program Files\Common Files\VST3\AudioFilePlayer.vst3"
-            uniqueId="79fe81c" isInstrument="0" fileTime="19217ce6d03" infoUpdateTime="19217fa844c"
+            uniqueId="79fe81c" isInstrument="0" fileTime="19217ce6d03" infoUpdateTime="192182c57ee"
             numInputs="2" numOutputs="2" isShell="0" hasARAExtension="0"
             uid="e95d02c7"/>
     <STATE>334.VMjLgTT....O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9DiM13BTIISX1UEaho2ZVkUdAAkKAwDUigWRWkEcQ0VTucmUY4BQlMUQLolShUELhsVRxHlXEYkVpUEagIFNpE1ZQolXuk0UYYldBgzSyYTXmcVLgMWQFgTPAIEVzEkQH0TP3QEMMczXqAiQWETUGk0a3XDRFslQgsVSGc0RqYTX0QSLgESQFgjLyHUX10zPt3hKt3hKt3hKt3hKtnTUv.UQAslXuk0UXoWUFE0YQcEVtPDTtHzZGI1YMIiXtPDTtLjKPcjKt3hKt3hKt3haTU0PUQDU3sFaicVTWkEQEYzXmEDOujzPu0Fbu4VYtQmO77hUSQ0LPwVcmklaSQWXzUlO..</STATE>
@@ -79,10 +79,10 @@
     </LAYOUT>
   </FILTER>
   <FILTER uid="8" x="0.5" y="0.6310483870967742" useARA="0" uiLastX_Normal="42"
-          uiLastY_Normal="401" uiopen_Normal="1">
+          uiLastY_Normal="401" uiopen_Normal="0">
     <PLUGIN name="OloEQ" format="VST3" category="Fx" manufacturer="Olo" version="1.0.0"
             file="C:\Users\aiden\OneDrive - Oklahoma A and M System\Programming\JUCE\Projects\OloEQ\Builds\VisualStudio2022\x64\Debug\VST3\OloEQ.vst3\Contents\x86_64-win\OloEQ.vst3"
-            uniqueId="fd95e917" isInstrument="0" fileTime="19217f04879" infoUpdateTime="19217fa844d"
+            uniqueId="fd95e917" isInstrument="0" fileTime="19218265096" infoUpdateTime="192182c57ef"
             numInputs="2" numOutputs="2" isShell="0" hasARAExtension="0"
             uid="e95851a1"/>
     <STATE>191.VMjLgXK....O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9XCLt3hKt3hKt3hKt3hYRUUSTEETIckVwTjQisVTTgkdEYjKAQjYPQSPWgUdMcjKAQjct3hdA4hKt3hKt3hKtnTUv.UQAslXuk0UXoWUFE0YQcEV77RRC8Vav8lak4Fc9vyKVMEUy.Ea0cVZtMEcgQWY9..</STATE>
