@@ -159,6 +159,12 @@ void OloEQAudioProcessorEditor::timerCallback()
         auto peakCoefficients = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
         updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
 
+        auto lowCutCoeffcients = makeLowCutFilter(chainSettings, audioProcessor.getSampleRate());
+        auto highCutCoeffcients = makeHighCutFilter(chainSettings, audioProcessor.getSampleRate());
+
+        updateCutFilter(monoChain.get<ChainPositions::LowCut>(), lowCutCoeffcients, chainSettings.lowCutSlope);
+        updateCutFilter(monoChain.get<ChainPositions::HighCut>(), highCutCoeffcients, chainSettings.lowCutSlope);
+
         repaint();
     }
 }
