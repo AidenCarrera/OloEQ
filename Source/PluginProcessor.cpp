@@ -180,8 +180,8 @@ bool OloEQAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* OloEQAudioProcessor::createEditor()
 {
-    // return new OloEQAudioProcessorEditor (*this);
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new OloEQAudioProcessorEditor (*this);
+    // return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
