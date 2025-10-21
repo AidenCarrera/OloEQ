@@ -1,3 +1,19 @@
-﻿**/Builds
-**/JuceLibraryCode
-**/.DS_Store
+﻿# JUCE build folders
+Builds/
+JuceLibraryCode/
+*.jucer.user
+*.jucer.backup
+
+# Visual Studio files
+*.sln
+*.vcxproj*
+*.vcxproj.filters
+*.vcxproj.user
+*.opensdf
+*.sdf
+*.ipch
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+*.swp

@@ -3,7 +3,7 @@
 <JUCERPROJECT id="pAWBda" name="OloEQ" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginName="OloEQ"
               pluginDesc="A simple EQ created by Olo" pluginManufacturer="Olo"
-              companyName="Olo">
+              companyName="Olo" pluginAAXCategory="1" pluginVST3Category="EQ">
   <MAINGROUP id="JOSuZS" name="OloEQ">
     <GROUP id="{832BD61A-E135-25FE-3A3D-2AE0F06BB753}" name="Source">
       <FILE id="lcVqPm" name="PluginProcessor.cpp" compile="1" resource="0"
