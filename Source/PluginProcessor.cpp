@@ -1,7 +1,9 @@
 /*
   ==============================================================================
-
-    PluginProcessor.cpp - Cleaned and aligned with PluginEditor style
+  
+    PluginProcessor.cpp
+    Implements the OloEQAudioProcessor class, including DSP processing,
+    filter chain management, parameter updates, and state handling.
 
   ==============================================================================
 */

@@ -1,10 +1,13 @@
 /*
   ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin editor.
+  
+    PluginEditor.h
+    Declares the OloEQAudioProcessorEditor class and the ResponseCurveComponent,
+    along with custom sliders and attachments for parameter control.
 
   ==============================================================================
 */
+
 
 #pragma once
 

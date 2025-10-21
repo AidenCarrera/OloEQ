@@ -1,7 +1,9 @@
 /*
   ==============================================================================
 
-    This file contains the basic framework code for a JUCE plugin editor.
+    PluginEditor.cpp
+    Implements the OloEQAudioProcessorEditor and ResponseCurveComponent,
+    including UI layout, slider attachments, and frequency response painting.
 
   ==============================================================================
 */
