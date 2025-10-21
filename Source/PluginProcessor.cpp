@@ -1,168 +1,133 @@
 /*
   ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin processor.
+  
+    PluginProcessor.cpp
+    Implements the OloEQAudioProcessor class, including DSP processing,
+    filter chain management, parameter updates, and state handling.
 
   ==============================================================================
 */
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "JucePluginDefines.h"
 
 //==============================================================================
+// Constructor / Destructor
 OloEQAudioProcessor::OloEQAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties()
-                     #if ! JucePlugin_IsMidiEffect
-                      #if ! JucePlugin_IsSynth
-                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                      #endif
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                     #endif
-                       )
+    : AudioProcessor(BusesProperties()
+#if ! JucePlugin_IsMidiEffect
+#if ! JucePlugin_IsSynth
+        .withInput("Input", juce::AudioChannelSet::stereo(), true)
+#endif
+        .withOutput("Output", juce::AudioChannelSet::stereo(), true)
+#endif
+    )
 #endif
 {
 }
 
-OloEQAudioProcessor::~OloEQAudioProcessor()
-{
-}
+OloEQAudioProcessor::~OloEQAudioProcessor() {}
 
 //==============================================================================
-const juce::String OloEQAudioProcessor::getName() const
-{
-    return JucePlugin_Name;
-}
-
+// Plugin information
+const juce::String OloEQAudioProcessor::getName() const { return JucePlugin_Name; }
 bool OloEQAudioProcessor::acceptsMidi() const
 {
-   #if JucePlugin_WantsMidiInput
+#if JucePlugin_WantsMidiInput
     return true;
-   #else
+#else
     return false;
-   #endif
+#endif
 }
-
 bool OloEQAudioProcessor::producesMidi() const
 {
-   #if JucePlugin_ProducesMidiOutput
+#if JucePlugin_ProducesMidiOutput
     return true;
-   #else
+#else
     return false;
-   #endif
+#endif
 }
-
 bool OloEQAudioProcessor::isMidiEffect() const
 {
-   #if JucePlugin_IsMidiEffect
+#if JucePlugin_IsMidiEffect
     return true;
-   #else
+#else
     return false;
-   #endif
+#endif
 }
+double OloEQAudioProcessor::getTailLengthSeconds() const { return 0.0; }
 
-double OloEQAudioProcessor::getTailLengthSeconds() const
+int OloEQAudioProcessor::getNumPrograms() { return 1; }
+int OloEQAudioProcessor::getCurrentProgram() { return 0; }
+void OloEQAudioProcessor::setCurrentProgram(int index) { juce::ignoreUnused(index); }
+const juce::String OloEQAudioProcessor::getProgramName(int index) { juce::ignoreUnused(index); return {}; }
+void OloEQAudioProcessor::changeProgramName(int index, const juce::String& newName)
 {
-    return 0.0;
-}
-
-int OloEQAudioProcessor::getNumPrograms()
-{
-    return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
-                // so this should be at least 1, even if you're not really implementing programs.
-}
-
-int OloEQAudioProcessor::getCurrentProgram()
-{
-    return 0;
-}
-
-void OloEQAudioProcessor::setCurrentProgram (int index)
-{
-}
-
-const juce::String OloEQAudioProcessor::getProgramName (int index)
-{
-    return {};
-}
-
-void OloEQAudioProcessor::changeProgramName (int index, const juce::String& newName)
-{
+    juce::ignoreUnused(index, newName);
 }
 
 //==============================================================================
-void OloEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+// Prepare / release resources
+void OloEQAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
-
     juce::dsp::ProcessSpec spec;
-
-    spec.maximumBlockSize = samplesPerBlock;
-
-    spec.numChannels = 1;
-
     spec.sampleRate = sampleRate;
+    spec.maximumBlockSize = samplesPerBlock;
+    spec.numChannels = 1;
 
     leftChain.prepare(spec);
     rightChain.prepare(spec);
 
     updateFilters();
-
 }
 
-void OloEQAudioProcessor::releaseResources()
-{
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
-}
+void OloEQAudioProcessor::releaseResources() {}
 
+//==============================================================================
+// Check bus layouts
 #ifndef JucePlugin_PreferredChannelConfigurations
-bool OloEQAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool OloEQAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-  #if JucePlugin_IsMidiEffect
-    juce::ignoreUnused (layouts);
+#if JucePlugin_IsMidiEffect
+    juce::ignoreUnused(layouts);
     return true;
-  #else
-    // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    // Some plugin hosts, such as certain GarageBand versions, will only
-    // load plugins that support stereo bus layouts.
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+#else
+    const auto mainOut = layouts.getMainOutputChannelSet();
+    const auto mainIn  = layouts.getMainInputChannelSet();
+
+
+    if (mainOut != juce::AudioChannelSet::mono() && mainOut != juce::AudioChannelSet::stereo())
         return false;
 
-    // This checks if the input layout matches the output layout
-   #if ! JucePlugin_IsSynth
-    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
+#if ! JucePlugin_IsSynth
+    if (mainOut != mainIn)
         return false;
-   #endif
+#endif
 
     return true;
-  #endif
+#endif
 }
 #endif
 
-void OloEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+//==============================================================================
+// Main audio processing
+void OloEQAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+    auto totalInputChannels  = getTotalNumInputChannels();
+    auto totalOutputChannels = getTotalNumOutputChannels();
+
+    for (auto i = totalInputChannels; i < totalOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
-    
+
     updateFilters();
 
     juce::dsp::AudioBlock<float> block(buffer);
 
-    auto leftBlock = block.getSingleChannelBlock(0);
+    auto leftBlock  = block.getSingleChannelBlock(0);
     auto rightBlock = block.getSingleChannelBlock(1);
 
     juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
@@ -170,35 +135,25 @@ void OloEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
 
     leftChain.process(leftContext);
     rightChain.process(rightContext);
+
+    juce::ignoreUnused(midiMessages);
 }
 
 //==============================================================================
-bool OloEQAudioProcessor::hasEditor() const
-{
-    return true; // (change this to false if you choose to not supply an editor)
-}
-
-juce::AudioProcessorEditor* OloEQAudioProcessor::createEditor()
-{
-    return new OloEQAudioProcessorEditor (*this);
-    // return new juce::GenericAudioProcessorEditor(*this);
-}
+// Editor
+bool OloEQAudioProcessor::hasEditor() const { return true; }
+juce::AudioProcessorEditor* OloEQAudioProcessor::createEditor() { return new OloEQAudioProcessorEditor(*this); }
 
 //==============================================================================
-void OloEQAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+// State management
+void OloEQAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
-
     juce::MemoryOutputStream mos(destData, true);
     apvts.state.writeToStream(mos);
 }
 
-void OloEQAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void OloEQAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
     auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
     if (tree.isValid())
     {
@@ -207,10 +162,11 @@ void OloEQAudioProcessor::setStateInformation (const void* data, int sizeInBytes
     }
 }
 
+//==============================================================================
+// Parameter helpers
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
 {
     ChainSettings settings;
-
     settings.lowCutFreq = apvts.getRawParameterValue("LowCut Freq")->load();
     settings.highCutFreq = apvts.getRawParameterValue("HighCut Freq")->load();
     settings.peakFreq = apvts.getRawParameterValue("Peak Freq")->load();
@@ -218,19 +174,22 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
     settings.peakQuality = apvts.getRawParameterValue("Peak Quality")->load();
     settings.lowCutSlope = static_cast<Slope>(apvts.getRawParameterValue("LowCut Slope")->load());
     settings.highCutSlope = static_cast<Slope>(apvts.getRawParameterValue("HighCut Slope")->load());
-
     return settings;
 }
 
-Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate)
+Coefficients makePeakFilter(const ChainSettings& settings, double sampleRate)
 {
-    return juce::dsp::IIR::Coefficients<float>::makePeakFilter(sampleRate, chainSettings.peakFreq, chainSettings.peakQuality,
-        juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+    return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+        sampleRate, settings.peakFreq, settings.peakQuality,
+        juce::Decibels::decibelsToGain(settings.peakGainInDecibels)
+    );
 }
 
-void OloEQAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings)
+//==============================================================================
+// Filter updates
+void OloEQAudioProcessor::updatePeakFilter(const ChainSettings& settings)
 {
-    auto peakCoefficients = makePeakFilter(chainSettings, getSampleRate());
+    auto peakCoefficients = makePeakFilter(settings, getSampleRate());
 
     updateCoefficients(leftChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
     updateCoefficients(rightChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
@@ -241,73 +200,63 @@ void updateCoefficients(Coefficients& old, const Coefficients& replacements)
     *old = *replacements;
 }
 
-void OloEQAudioProcessor::updateLowCutFilters(const ChainSettings& chainSettings)
+void OloEQAudioProcessor::updateLowCutFilters(const ChainSettings& settings)
 {
-    auto lowCutCoefficients = makeLowCutFilter(chainSettings, getSampleRate());
+    auto lowCutCoefficients = makeLowCutFilter(settings, getSampleRate());
 
-    auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
-    auto& rightLowCut = rightChain.get<ChainPositions::LowCut>();
-
-    updateCutFilter(leftLowCut, lowCutCoefficients, chainSettings.lowCutSlope);
-    updateCutFilter(rightLowCut, lowCutCoefficients, chainSettings.lowCutSlope);
+    updateCutFilter(leftChain.get<ChainPositions::LowCut>(), lowCutCoefficients, settings.lowCutSlope);
+    updateCutFilter(rightChain.get<ChainPositions::LowCut>(), lowCutCoefficients, settings.lowCutSlope);
 }
-void OloEQAudioProcessor::updateHighCutFilters(const ChainSettings& chainSettings)
+
+void OloEQAudioProcessor::updateHighCutFilters(const ChainSettings& settings)
 {
-    auto highCutCoefficients = makeHighCutFilter(chainSettings, getSampleRate());
+    auto highCutCoefficients = makeHighCutFilter(settings, getSampleRate());
 
-    auto& leftHighCut = leftChain.get<ChainPositions::HighCut>();
-    auto& rightHighCut = rightChain.get<ChainPositions::HighCut>();
-
-    updateCutFilter(leftHighCut, highCutCoefficients, chainSettings.highCutSlope);
-    updateCutFilter(rightHighCut, highCutCoefficients, chainSettings.highCutSlope);
+    updateCutFilter(leftChain.get<ChainPositions::HighCut>(), highCutCoefficients, settings.highCutSlope);
+    updateCutFilter(rightChain.get<ChainPositions::HighCut>(), highCutCoefficients, settings.highCutSlope);
 }
 
 void OloEQAudioProcessor::updateFilters()
 {
-    auto chainSettings = getChainSettings(apvts);
+    auto settings = getChainSettings(apvts);
 
-    updateLowCutFilters(chainSettings);
-    updatePeakFilter(chainSettings);
-    updateHighCutFilters(chainSettings);
+    updateLowCutFilters(settings);
+    updatePeakFilter(settings);
+    updateHighCutFilters(settings);
 }
 
+//==============================================================================
+// Create parameter layout
 juce::AudioProcessorValueTreeState::ParameterLayout
 OloEQAudioProcessor::createParameterLayout()
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>("LowCut Freq", "LowCut Freq",
-        juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f), 20.f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        "LowCut Freq", "LowCut Freq", juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f), 20.f));
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq", "HighCut Freq",
-        juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f), 20000.f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        "HighCut Freq", "HighCut Freq", juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f), 20000.f));
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Freq", "Peak Freq",
-        juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f), 750.f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        "Peak Freq", "Peak Freq", juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f), 750.f));
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Gain", "Peak Gain",
-        juce::NormalisableRange<float>(-24.f, 24.f, 0.5f, 1.f), 0.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        "Peak Gain", "Peak Gain", juce::NormalisableRange<float>(-24.f, 24.f, 0.5f, 1.f), 0.f));
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Quality", "Peak Quality",
-        juce::NormalisableRange<float>(0.1f, 10.f, 0.05f, 1.f), 1.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        "Peak Quality", "Peak Quality", juce::NormalisableRange<float>(0.1f, 10.f, 0.05f, 1.f), 1.f));
 
-    juce::StringArray stringArray;
-    for (int i = 0; i < 4; ++i) {
-        juce::String str;
-        str << (12 + i * 12);
-        str << " db/Oct";
-        stringArray.add(str);
-    }
+    juce::StringArray slopeChoices;
+    for (int i = 0; i < 4; ++i)
+        slopeChoices.add(juce::String(12 + i * 12) + " db/Oct");
 
-    layout.add(std::make_unique<juce::AudioParameterChoice>("LowCut Slope", "LowCut Slope", stringArray, 0));
-    layout.add(std::make_unique<juce::AudioParameterChoice>("HighCut Slope", "HighCut Slope", stringArray, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("LowCut Slope", "LowCut Slope", slopeChoices, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("HighCut Slope", "HighCut Slope", slopeChoices, 0));
 
     return layout;
 }
 
 //==============================================================================
-// This creates new instances of the plugin..
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
-{
-    return new OloEQAudioProcessor();
-}
+// Factory function
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new OloEQAudioProcessor(); }
