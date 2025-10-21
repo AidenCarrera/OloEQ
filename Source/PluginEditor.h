@@ -11,76 +11,78 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
+//==============================================================================
+// Custom rotary slider with no text box
 struct CustomRotarySlider : juce::Slider
 {
-    CustomRotarySlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag,
-        juce::Slider::TextEntryBoxPosition::NoTextBox)
-        {
-            
-        }
+    CustomRotarySlider()
+        : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag,
+                       juce::Slider::TextEntryBoxPosition::NoTextBox) {}
 };
 
 struct ResponseCurveComponent : juce::Component,
-    juce::AudioProcessorParameter::Listener,
-    juce::Timer
+                                juce::AudioProcessorParameter::Listener,
+                                juce::Timer
+{
+    ResponseCurveComponent(OloEQAudioProcessor&);
+    ~ResponseCurveComponent();
+
+    // Called when an attached parameter changes
+    void parameterValueChanged(int parameterIndex, float newValue) override;
+
+    // Gesture notifications (unused here)
+    void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override
     {
-        ResponseCurveComponent(OloEQAudioProcessor&);
-        ~ResponseCurveComponent();
+        juce::ignoreUnused(parameterIndex, gestureIsStarting);
+    }
 
-        void parameterValueChanged(int parameterIndex, float newValue) override;
+    // Timer callback for updating the response curve
+    void timerCallback() override;
 
-        void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override {};
+    // Paint the frequency response curve
+    void paint(juce::Graphics& g) override;
 
-        void timerCallback() override;
+private:
+    OloEQAudioProcessor& audioProcessor;
+    juce::Atomic<bool> parametersChanged{ false };
 
-        void paint(juce::Graphics& g) override;
-        private:
-            OloEQAudioProcessor& audioProcessor;
-            juce::Atomic<bool> parametersChanged{ false };
+    MonoChain monoChain;
+};
 
-            MonoChain monoChain;
-    };
 
 //==============================================================================
-/**
-*/
+// Main plugin editor class
 class OloEQAudioProcessorEditor : public juce::AudioProcessorEditor
 {
 public:
-    OloEQAudioProcessorEditor (OloEQAudioProcessor&);
+    OloEQAudioProcessorEditor(OloEQAudioProcessor&);
     ~OloEQAudioProcessorEditor() override;
 
-    //==============================================================================
-    void paint (juce::Graphics&) override;
+    void paint(juce::Graphics&) override;
     void resized() override;
 
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
+    // Reference to the processor
     OloEQAudioProcessor& audioProcessor;
 
-    CustomRotarySlider peakFreqSlider,
-        peakGainSlider,
-        peakQualitySlider,
-        lowCutFreqSlider,
-        highCutFreqSlider,
-        lowCutSlopeSlider,
-        highCutSlopeSlider;
+    // Sliders
+    CustomRotarySlider peakFreqSlider, peakGainSlider, peakQualitySlider;
+    CustomRotarySlider lowCutFreqSlider, highCutFreqSlider;
+    CustomRotarySlider lowCutSlopeSlider, highCutSlopeSlider;
 
+    // Frequency response component
     ResponseCurveComponent responseCurveComponent;
 
+    // Slider attachments to connect sliders to parameters
     using APVTS = juce::AudioProcessorValueTreeState;
     using Attachment = APVTS::SliderAttachment;
 
-    Attachment peakFreqSliderAttachment,
-        peakGainSliderAttachment,
-        peakQualitySliderAttachment,
-        lowCutFreqSliderAttachment,
-        highCutFreqSliderAttachment,
-        lowCutSlopeSliderAttachment,
-        highCutSlopeSliderAttachment;
+    Attachment peakFreqSliderAttachment, peakGainSliderAttachment, peakQualitySliderAttachment;
+    Attachment lowCutFreqSliderAttachment, highCutFreqSliderAttachment;
+    Attachment lowCutSlopeSliderAttachment, highCutSlopeSliderAttachment;
 
+    // Helper to return all child components
     std::vector<juce::Component*> getComps();
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OloEQAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OloEQAudioProcessorEditor)
 };
