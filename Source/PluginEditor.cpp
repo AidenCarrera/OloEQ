@@ -54,6 +54,18 @@ void ResponseCurveComponent::timerCallback()
     }
 }
 
+namespace
+{
+    /** Maps a normalized 0–1 value to a logarithmic frequency range. */
+    float mapToLog10(float normalizedValue, float minFreq, float maxFreq)
+    {
+        auto logMin = std::log10(minFreq);
+        auto logMax = std::log10(maxFreq);
+        auto logValue = logMin + normalizedValue * (logMax - logMin);
+        return std::pow(10.0f, logValue);
+    }
+}
+
 void ResponseCurveComponent::paint(juce::Graphics& g)
 {
     using namespace juce;
@@ -72,42 +84,59 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
     for (int i = 0; i < w; ++i)
     {
         float mag = 1.0f;
-        auto freq = mapToLog10(float(i) / float(w), 20.0f, 20000.0f);
+        auto freq = mapToLog10(static_cast<float>(i) / static_cast<float>(w), 20.0f, 20000.0f);
 
         if (!monoChain.isBypassed<ChainPositions::Peak>())
-            mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            mag *= static_cast<float>(peak.coefficients->getMagnitudeForFrequency(freq, sampleRate));
 
-        if (!lowCut.isBypassed<0>()) mag *= lowCut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!lowCut.isBypassed<1>()) mag *= lowCut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!lowCut.isBypassed<2>()) mag *= lowCut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!lowCut.isBypassed<3>()) mag *= lowCut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!lowCut.isBypassed<0>())
+            mag *= static_cast<float>(lowCut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate));
+        if (!lowCut.isBypassed<1>())
+            mag *= static_cast<float>(lowCut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate));
+        if (!lowCut.isBypassed<2>())
+            mag *= static_cast<float>(lowCut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate));
+        if (!lowCut.isBypassed<3>())
+            mag *= static_cast<float>(lowCut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate));
 
-        if (!highCut.isBypassed<0>()) mag *= highCut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!highCut.isBypassed<1>()) mag *= highCut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!highCut.isBypassed<2>()) mag *= highCut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!highCut.isBypassed<3>()) mag *= highCut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!highCut.isBypassed<0>())
+            mag *= static_cast<float>(highCut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate));
+        if (!highCut.isBypassed<1>())
+            mag *= static_cast<float>(highCut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate));
+        if (!highCut.isBypassed<2>())
+            mag *= static_cast<float>(highCut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate));
+        if (!highCut.isBypassed<3>())
+            mag *= static_cast<float>(highCut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate));
 
         mags[i] = juce::Decibels::gainToDecibels(mag);
     }
 
     juce::Path responseCurve;
-    const double outputMin = responseArea.getBottom();
-    const double outputMax = responseArea.getY();
 
-    auto map = [outputMin, outputMax](float input) {
-        return juce::jmap(input, -24.0f, 24.0f, float(outputMin), float(outputMax));
+    const float outputMin = static_cast<float>(responseArea.getBottom());
+    const float outputMax = static_cast<float>(responseArea.getY());
+
+    auto map = [outputMin, outputMax](float input)
+    {
+        return juce::jmap(input, -24.0f, 24.0f, outputMin, outputMax);
     };
 
-    responseCurve.startNewSubPath(responseArea.getX(), map(mags.front()));
-    for (size_t i = 1; i < mags.size(); ++i)
-        responseCurve.lineTo(responseArea.getX() + float(i), map(mags[i]));
+    responseCurve.startNewSubPath(
+        static_cast<float>(responseArea.getX()),
+        map(mags.front())
+    );
 
-    g.setColour(Colours::green);
+    const float startX = static_cast<float>(responseArea.getX());
+    for (size_t i = 1; i < mags.size(); ++i)
+        responseCurve.lineTo(startX + static_cast<float>(i), map(mags[i]));
+
+    g.setColour(juce::Colours::green);
     g.drawRoundedRectangle(responseArea.toFloat(), 4.f, 1.f);
 
-    g.setColour(Colours::white);
+    g.setColour(juce::Colours::white);
     g.strokePath(responseCurve, juce::PathStrokeType(2.f));
+
 }
+
 
 //==============================================================================
 OloEQAudioProcessorEditor::OloEQAudioProcessorEditor (OloEQAudioProcessor& p)

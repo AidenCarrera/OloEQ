@@ -94,8 +94,9 @@ bool OloEQAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) con
     juce::ignoreUnused(layouts);
     return true;
 #else
-    auto& mainOut = layouts.getMainOutputChannelSet();
-    auto& mainIn  = layouts.getMainInputChannelSet();
+    const auto mainOut = layouts.getMainOutputChannelSet();
+    const auto mainIn  = layouts.getMainInputChannelSet();
+
 
     if (mainOut != juce::AudioChannelSet::mono() && mainOut != juce::AudioChannelSet::stereo())
         return false;
