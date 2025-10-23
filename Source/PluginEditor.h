@@ -1,6 +1,6 @@
 /*
   ==============================================================================
-  
+
     PluginEditor.h
     Declares the OloEQAudioProcessorEditor class and the ResponseCurveComponent,
     along with custom sliders and attachments for parameter control.
@@ -8,21 +8,29 @@
   ==============================================================================
 */
 
-
 #pragma once
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
 //==============================================================================
-// Custom rotary slider with no text box
+// Custom rotary slider with optional text box
 struct CustomRotarySlider : juce::Slider
 {
-    CustomRotarySlider()
+    CustomRotarySlider(bool showTextBox = false)
         : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag,
-                       juce::Slider::TextEntryBoxPosition::NoTextBox) {}
+                       showTextBox ? juce::Slider::TextEntryBoxPosition::TextBoxBelow
+                                   : juce::Slider::TextEntryBoxPosition::NoTextBox)
+    {
+        setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+        setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+        setTextBoxIsEditable(false);
+    }
 };
 
+
+//==============================================================================
+// Frequency response component
 struct ResponseCurveComponent : juce::Component,
                                 juce::AudioProcessorParameter::Listener,
                                 juce::Timer
@@ -30,19 +38,15 @@ struct ResponseCurveComponent : juce::Component,
     ResponseCurveComponent(OloEQAudioProcessor&);
     ~ResponseCurveComponent();
 
-    // Called when an attached parameter changes
     void parameterValueChanged(int parameterIndex, float newValue) override;
 
-    // Gesture notifications (unused here)
     void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override
     {
         juce::ignoreUnused(parameterIndex, gestureIsStarting);
     }
 
-    // Timer callback for updating the response curve
     void timerCallback() override;
 
-    // Paint the frequency response curve
     void paint(juce::Graphics& g) override;
 
 private:
@@ -51,7 +55,6 @@ private:
 
     MonoChain monoChain;
 };
-
 
 //==============================================================================
 // Main plugin editor class
@@ -65,7 +68,6 @@ public:
     void resized() override;
 
 private:
-    // Reference to the processor
     OloEQAudioProcessor& audioProcessor;
 
     // Sliders
@@ -76,13 +78,16 @@ private:
     // Frequency response component
     ResponseCurveComponent responseCurveComponent;
 
-    // Slider attachments to connect sliders to parameters
+    // Slider attachments
     using APVTS = juce::AudioProcessorValueTreeState;
     using Attachment = APVTS::SliderAttachment;
 
     Attachment peakFreqSliderAttachment, peakGainSliderAttachment, peakQualitySliderAttachment;
     Attachment lowCutFreqSliderAttachment, highCutFreqSliderAttachment;
     Attachment lowCutSlopeSliderAttachment, highCutSlopeSliderAttachment;
+
+    // Apply look and feel to all sliders (will handle notches and white text)
+    void applyDialLookAndFeel();
 
     // Helper to return all child components
     std::vector<juce::Component*> getComps();

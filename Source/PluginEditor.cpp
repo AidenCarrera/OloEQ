@@ -24,38 +24,80 @@ class DialLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     void drawRotarySlider(juce::Graphics& g,
-                      int x, int y, int width, int height,
-                      float sliderPosProportional,
-                      float rotaryStartAngle,
-                      float rotaryEndAngle,
-                      juce::Slider& slider) override
+                          int x, int y, int width, int height,
+                          float sliderPosProportional,
+                          float rotaryStartAngle,
+                          float rotaryEndAngle,
+                          juce::Slider& slider) override
     {
         juce::ignoreUnused(slider);
-        // Make a square bounds from the rectangle to keep circle
-        float diameter = static_cast<float>(std::min(width, height)) - 8.0f; // 4px padding each side
-        juce::Point<float> center(x + width * 0.5f, y + height * 0.5f);
-        juce::Rectangle<float> knobBounds(center.x - diameter*0.5f, center.y - diameter*0.5f, diameter, diameter);
 
-        // Draw base circle
+        // --- Dial bounds and center ---
+        float diameter = static_cast<float>(std::min(width, height)) - 8.0f;
+        juce::Point<float> center(x + width * 0.5f, y + height * 0.5f);
+        juce::Rectangle<float> knobBounds(center.x - diameter*0.5f,
+                                          center.y - diameter*0.5f,
+                                          diameter,
+                                          diameter);
+
+        // --- Draw dial base ---
         g.setColour(dialFillColour);
         g.fillEllipse(knobBounds);
 
-        // Outline
         g.setColour(dialOutlineColour);
         g.drawEllipse(knobBounds, 1.5f);
 
-        // Draw the knob indicator (tick/line)
+        // --- Draw indicator (knob position) ---
         float angle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
-        float radius = diameter / 2.0f - 2.0f; // keep indicator inside
+        float radius = diameter / 2.0f - 4.0f; // leave space for notches
         juce::Point<float> knobTip(center.x + std::cos(angle - juce::MathConstants<float>::halfPi) * radius,
-                                center.y + std::sin(angle - juce::MathConstants<float>::halfPi) * radius);
-
+                                   center.y + std::sin(angle - juce::MathConstants<float>::halfPi) * radius);
         g.setColour(dialTickColour);
         g.drawLine(center.x, center.y, knobTip.x, knobTip.y, 2.0f);
+
+        // --- Draw notches ---
+        int numNotches = 7;
+        for (int i = 0; i <= numNotches; ++i)
+        {
+            float notchAngle = rotaryStartAngle + (i / static_cast<float>(numNotches)) * (rotaryEndAngle - rotaryStartAngle);
+            float innerRadius = radius - 4.0f; // shorter tick
+            float outerRadius = radius;
+            juce::Point<float> start(center.x + std::cos(notchAngle - juce::MathConstants<float>::halfPi) * innerRadius,
+                                     center.y + std::sin(notchAngle - juce::MathConstants<float>::halfPi) * innerRadius);
+            juce::Point<float> end(center.x + std::cos(notchAngle - juce::MathConstants<float>::halfPi) * outerRadius,
+                                   center.y + std::sin(notchAngle - juce::MathConstants<float>::halfPi) * outerRadius);
+            g.setColour(juce::Colours::white);
+            g.drawLine(start.x, start.y, end.x, end.y, 1.0f);
+        }
+
+        // --- Draw min/max labels ---
+        g.setColour(juce::Colours::white);
+        juce::Font labelFont(12.0f, juce::Font::bold);
+        g.setFont(labelFont);
+        g.drawText(juce::String(slider.getMinimum()), knobBounds.getX(), knobBounds.getBottom() + 2, 40, 20, juce::Justification::centredLeft);
+        g.drawText(juce::String(slider.getMaximum()), knobBounds.getRight()-40, knobBounds.getBottom() + 2, 40, 20, juce::Justification::centredRight);
+
+        // --- Draw current value in center ---
+        juce::String valueText;
+        if (slider.getName() == "Peak Gain")
+            valueText = juce::String(slider.getValue(), 1) + " dB";
+        else if (slider.getName() == "Peak Freq" || slider.getName() == "LowCut Freq" || slider.getName() == "HighCut Freq")
+            valueText = juce::String(slider.getValue(), 0) + " Hz";
+        else
+            valueText = juce::String(slider.getValue(), 1);
+
+        juce::Font valueFont(14.0f, juce::Font::bold);
+        g.setFont(valueFont);
+        g.setColour(juce::Colours::white);
+
+        g.drawText(valueText,
+                   knobBounds.getX(),
+                   knobBounds.getY() + knobBounds.getHeight() * 0.35f,
+                   knobBounds.getWidth(),
+                   20,
+                   juce::Justification::centred);
     }
-
 };
-
 
 //==============================================================================
 
@@ -215,7 +257,7 @@ OloEQAudioProcessorEditor::OloEQAudioProcessorEditor (OloEQAudioProcessor& p)
     lowCutSlopeSlider.setLookAndFeel(myDialLookAndFeel.get());
     highCutSlopeSlider.setLookAndFeel(myDialLookAndFeel.get());
 
-    setSize (600, 400);
+    setSize(800, 500); // bigger window
 }
 
 OloEQAudioProcessorEditor::~OloEQAudioProcessorEditor()
