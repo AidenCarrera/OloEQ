@@ -2,11 +2,13 @@
 
 OloEQ is a **modern 3-band parametric equalizer** built with **C++** and **JUCE**.  
 It provides control over audio with **Low-Cut**, **Peak**, and **High-Cut** filters.
-Designed as a clean, educational, and extensible example of real-time digital signal processing and UI rendering in JUCE.
 
-------------------------------------------------------------
-Features
-------------------------------------------------------------
+## Purpose
+
+The goal of OloEQ is to create a functional yet approachable EQ plugin that demonstrates the fundamentals of real-time DSP, state management, and UI rendering in JUCE.
+It began as a personal learning project to explore filter design, frequency visualization, and plugin architecture, while keeping the codebase clean enough to expand into more advanced tools in the future.
+
+## Features
 
 - **Three Bands:** Peak, Low-Cut, and High-Cut filters  
 - Adjustable **frequency**, **gain**, and **Q** for each band  
@@ -17,9 +19,7 @@ Features
 - Resizable, minimal interface  
 - Supports both **Standalone** and **VST3** plugin formats  
 
-------------------------------------------------------------
-Tech Stack
-------------------------------------------------------------
+## Tech Stack
 
 - **JUCE 8.0.10** – Core audio and UI framework   
 - **C++17** – Primary language  
@@ -27,9 +27,7 @@ Tech Stack
 - **VST3 SDK** – Plugin format support  
 
 
-------------------------------------------------------------
-How To Use
-------------------------------------------------------------
+## How To Use
 
 To clone and run this application, you'll need Git and Node.js installed. Then:
 ```
@@ -56,9 +54,7 @@ juce --open OloEQ.jucer
 #    - VST3: Copy the built .vst3 file to your DAW’s plugin folder
 ```
 
-------------------------------------------------------------
-Future Improvements
-------------------------------------------------------------
+## Future Improvements
 
 - Add additional parametric bands  
 - Implement FFT analyzer overlay
